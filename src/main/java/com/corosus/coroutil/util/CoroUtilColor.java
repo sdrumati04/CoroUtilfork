@@ -5,7 +5,6 @@ import it.unimi.dsi.fastutil.ints.IntArrays;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.awt.image.BufferedImage;
@@ -14,18 +13,9 @@ public class CoroUtilColor {
     
 
     public static int[] getColors(BlockState state) {
-        BakedModel model;
-
-        //used when foliage shader is on
-//        if (FoliageData.backupBakedModelStore.containsKey(state)) {
-//            model = FoliageData.backupBakedModelStore.get(state);
-//        } else {
-            model = Minecraft.getInstance().getBlockRenderer().getBlockModelShaper().getBlockModel(state);
-//        }
-
-        if (model != null && !model.isCustomRenderer()) {
-            //TODO: this requires a param in forge, but not in fabric, resolve this
-            TextureAtlasSprite sprite = model.getParticleIcon(/*net.minecraftforge.client.model.data.ModelData.EMPTY*/);
+        var mat = Minecraft.getInstance().getModelManager().getBlockStateModelSet().getParticleMaterial(state);
+        if (mat != null) {
+            TextureAtlasSprite sprite = mat.sprite();
             if (sprite != null && !sprite.contents().name().equals(MissingTextureAtlasSprite.getLocation())) {
                 return getColors(sprite);
             }
@@ -39,7 +29,7 @@ public class CoroUtilColor {
             y += textureAtlasSprite.contents().animatedTexture.getFrameY(frameIndex) * textureAtlasSprite.contents().height();
         }
 
-        return textureAtlasSprite.contents().originalImage.getPixelRGBA(x, y);
+        return textureAtlasSprite.contents().originalImage.getPixel(x, y);
     }
 
     public static int[] getColors(TextureAtlasSprite sprite) {

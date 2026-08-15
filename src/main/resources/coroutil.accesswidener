@@ -1,10 +1,9 @@
-accessWidener	v2	named
+accessWidener	v2	official
 accessible    method    net/minecraft/client/renderer/texture/SpriteContents    getFrameCount    ()I
 accessible    field    net/minecraft/client/renderer/texture/SpriteContents    animatedTexture    Lnet/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture;
 accessible    field    net/minecraft/client/renderer/texture/SpriteContents    originalImage    Lcom/mojang/blaze3d/platform/NativeImage;
 accessible    method    net/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture    getFrameX    (I)I
 accessible    method    net/minecraft/client/renderer/texture/SpriteContents$AnimatedTexture    getFrameY    (I)I
-accessible method net/minecraft/world/level/biome/Biome getTemperature (Lnet/minecraft/core/BlockPos;)F
 
 accessible field net/minecraft/client/particle/Particle x D
 accessible field net/minecraft/client/particle/Particle y D

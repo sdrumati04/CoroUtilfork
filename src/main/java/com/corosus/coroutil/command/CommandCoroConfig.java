@@ -22,7 +22,7 @@ import static net.minecraft.commands.Commands.literal;
 public class CommandCoroConfig {
 	public static void register(final CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(
-			Commands.literal(getCommandName()).requires(s -> s.hasPermission(2))
+			Commands.literal(getCommandName()).requires(s -> s.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER))
 			.then(literal("config")
 				.then(literal("common")
 					.then(argumentReload("common"))

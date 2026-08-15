@@ -45,10 +45,10 @@ public class CoroUtilCompatibility {
                 ex.printStackTrace();
                 //prevent error spam
                 sereneSeasonsInstalled = false;
-                return biome.getTemperature(pos);
+                return biome.getBaseTemperature();
             }
         } else {
-            return biome.getTemperature(pos);
+            return biome.getBaseTemperature();
         }
     }
 
@@ -77,11 +77,11 @@ public class CoroUtilCompatibility {
     }
 
     public static boolean coldEnoughToSnow(Biome biome, BlockPos pos, Level levelReader) {
-        return !warmEnoughToRain(biome, pos, levelReader);
+        return biome.coldEnoughToSnow(pos, levelReader.getSeaLevel());
     }
 
     public static boolean warmEnoughToRain(Biome biome, BlockPos pos, Level levelReader) {
-        return getAdjustedTemperature(levelReader, biome, pos) >= 0.15F;
+        return biome.warmEnoughToRain(pos, levelReader.getSeaLevel());
     }
 
 }

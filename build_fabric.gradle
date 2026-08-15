@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.6-SNAPSHOT'
+	id 'net.fabricmc.fabric-loom' version '1.17-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -7,13 +7,6 @@ version = project.mod_version
 group = project.maven_group
 
 repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
-
-	// Complete Config repos
 	maven {
 		url 'https://jitpack.io'
 	}
@@ -34,6 +27,10 @@ repositories {
 		url = "https://maven.parchmentmc.net/"
 	}
 	maven {
+		name = "Fuzs Mod Resources"
+		url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
+	}
+	maven {
 		url "https://cursemaven.com"
 	}
 	flatDir {
@@ -42,31 +39,19 @@ repositories {
 }
 
 dependencies {
-	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings(loom.layered {
-		it.parchment("org.parchmentmc.data:parchment-${minecraft_version}:${parchment_version}@zip")
-		it.officialMojangMappings { nameSyntheticMembers = false }
-	})
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	include(modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}")
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	//include(modImplementation("ForgeConfigAPIPort:ForgeConfigAPIPort:v8.0.0-1.20.1-Fabric"))
-	//using https://www.curseforge.com/minecraft/mc-mods/forge-config-api-port-fabric/files/4583000
-	include(modImplementation("curse.maven:forge-config-api-port-fabric-547434:5427493"))
-	implementation 'com.electronwill.night-config:core:3.6.5'
-	implementation 'com.electronwill.night-config:toml:3.6.5'
-	//include(modImplementation("fuzs.forgeconfigapiport:forgeconfigapiport-fabric:v8.0.0-1.20.1-Fabric"))
+	implementation "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${project.forgeconfigapiport_version}"
+	implementation 'com.electronwill.night-config:core:3.8.0'
+	implementation 'com.electronwill.night-config:toml:3.8.0'
 }
 
 //If there's mixins
 loom {
 	accessWidenerPath = file("src/main/resources/coroutil.accesswidener")
-	mixin {
-		defaultRefmapName = "${project.mod_id}.refmap.json"
-	}
 }
 
 sourceSets {
@@ -96,18 +81,12 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	// Minecraft 1.18 (1.18-pre2) upwards uses Java 17.
-	it.options.release = 21
+	it.options.release = 25
 }
 
 java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	//withSourcesJar()
-
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {

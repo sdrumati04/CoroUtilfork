@@ -2,127 +2,168 @@ package com.corosus.coroutil.loader.fabric;
 
 import com.corosus.coroutil.util.CULog;
 import com.corosus.modconfig.*;
-import fuzs.forgeconfigapiport.fabric.api.forge.v4.ForgeConfigRegistry;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.config.ModConfig;
+import net.fabricmc.loader.api.FabricLoader;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 
 public class ModConfigDataFabric extends ModConfigData {
 
-    public HashMap<String, ForgeConfigSpec.ConfigValue<String>> valsStringConfig = new HashMap<>();
-    public HashMap<String, ForgeConfigSpec.ConfigValue<Integer>> valsIntegerConfig = new HashMap<>();
-    public HashMap<String, ForgeConfigSpec.ConfigValue<Double>> valsDoubleConfig = new HashMap<>();
-    public HashMap<String, ForgeConfigSpec.ConfigValue<Boolean>> valsBooleanConfig = new HashMap<>();
+    public HashMap<String, String> valsStringConfig = new HashMap<>();
+    public HashMap<String, Integer> valsIntegerConfig = new HashMap<>();
+    public HashMap<String, Double> valsDoubleConfig = new HashMap<>();
+    public HashMap<String, Boolean> valsBooleanConfig = new HashMap<>();
 
     public ModConfigDataFabric(String savePath, String parStr, Class parClass, IConfigCategory parConfig) {
         super(savePath, parStr, parClass, parConfig);
     }
 
+    private Path getConfigFile() {
+        return FabricLoader.getInstance().getConfigDir().resolve(saveFilePath + ".toml");
+    }
+
     @Override
     public String getConfigString(String fieldName) {
-        return valsStringConfig.get(fieldName).get();
+        return valsStringConfig.getOrDefault(fieldName, "");
     }
 
     @Override
     public Integer getConfigInteger(String fieldName) {
-        return valsIntegerConfig.get(fieldName).get();
+        return valsIntegerConfig.getOrDefault(fieldName, 0);
     }
 
     @Override
     public Double getConfigDouble(String fieldName) {
-        return valsDoubleConfig.get(fieldName).get();
+        return valsDoubleConfig.getOrDefault(fieldName, 0.0);
     }
 
     @Override
     public Boolean getConfigBoolean(String fieldName) {
-        return valsBooleanConfig.get(fieldName).get();
+        return valsBooleanConfig.getOrDefault(fieldName, false);
     }
 
     @Override
     public <T> void setConfig(String fieldName, T obj) {
-        if (obj instanceof String) {
-            valsStringConfig.get(fieldName).set((String)obj);
-            valsStringConfig.get(fieldName).save();
-        } else if (obj instanceof Integer) {
-            valsIntegerConfig.get(fieldName).set((Integer)obj);
-            valsIntegerConfig.get(fieldName).save();
-        } else if (obj instanceof Double) {
-            valsDoubleConfig.get(fieldName).set((Double)obj);
-            valsDoubleConfig.get(fieldName).save();
-        } else if (obj instanceof Boolean) {
-            valsBooleanConfig.get(fieldName).set((Boolean)obj);
-            valsBooleanConfig.get(fieldName).save();
-        } else {
-            //dbg("unhandled datatype, update initField");
+        if (obj instanceof String s) {
+            valsStringConfig.put(fieldName, s);
+        } else if (obj instanceof Integer i) {
+            valsIntegerConfig.put(fieldName, i);
+        } else if (obj instanceof Double d) {
+            valsDoubleConfig.put(fieldName, d);
+        } else if (obj instanceof Boolean b) {
+            valsBooleanConfig.put(fieldName, b);
         }
+        writeConfigFile(false);
     }
 
     @Override
     public void writeConfigFile(boolean resetConfig) {
-
-        //TODO: see if we need support for resetting config
-        //if (resetConfig) if (saveFilePath.exists()) saveFilePath.delete();
-        //preInitConfig = new Configuration(saveFilePath);
-        //preInitConfig.load();
-        ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-        BUILDER.comment("General mod settings").push("general");
-
-        Field[] fields = configClass.getDeclaredFields();
-
-        for (int i = 0; i < fields.length; i++) {
-            Field field = fields[i];
-            String name = field.getName();
-
-            addToConfig(BUILDER, field, name);
+        Path configFile = getConfigFile();
+        try {
+            if (!resetConfig && Files.exists(configFile)) {
+                loadFromFile(configFile);
+            }
+            saveToFile(configFile);
+        } catch (Exception e) {
+            CULog.err("Failed to load/save config file " + configFile);
+            e.printStackTrace();
         }
-
-        CULog.dbg("writeConfigFile invoked for " + this.configID + ", resetConfig: " + resetConfig);
-        BUILDER.pop();
-        ForgeConfigSpec CONFIG = BUILDER.build();
-        ForgeConfigRegistry.INSTANCE.register(ConfigMod.instance().MODID, ModConfig.Type.COMMON, CONFIG, saveFilePath + ".toml");
     }
 
-    /**
-     * Perform the actual adding of values to the config file
-     * @param name Name of the variable
-     * @param field Field in the file the variable is
-     */
-    private void addToConfig(ForgeConfigSpec.Builder builder, Field field, String name) {
-
-        // Comment from the annotation on the value of the actual variable that 'name' is retrieved from
-        //space intentional here to workaround forge hating blank comments
-        String comment = "-";
-        double min = Double.MIN_VALUE;
-        double max = Double.MAX_VALUE;
-
-        ConfigComment anno_comment = field.getAnnotation(ConfigComment.class);
-        if (anno_comment != null) {
-            comment = anno_comment.value()[0];
+    private void loadFromFile(Path file) {
+        try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#") || line.startsWith("[")) {
+                    continue;
+                }
+                int eq = line.indexOf('=');
+                if (eq > 0) {
+                    String key = line.substring(0, eq).trim();
+                    String val = line.substring(eq + 1).trim();
+                    if (val.startsWith("\"") && val.endsWith("\"") && val.length() >= 2) {
+                        val = val.substring(1, val.length() - 1);
+                    }
+                    applyParsedValue(key, val);
+                }
+            }
+        } catch (Exception e) {
+            CULog.err("Failed to read config " + file);
+            e.printStackTrace();
         }
+    }
 
-        ConfigParams anno_params = field.getAnnotation(ConfigParams.class);
-        if (anno_params != null) {
-            comment = anno_params.comment();
-            min = anno_params.min();
-            max = anno_params.max();
+    private void applyParsedValue(String key, String val) {
+        try {
+            Field field = configClass.getDeclaredField(key);
+            Class<?> type = field.getType();
+            if (type == String.class) {
+                valsStringConfig.put(key, val);
+                setFieldBasedOnType(key, val);
+            } else if (type == int.class || type == Integer.class) {
+                int intVal = Integer.parseInt(val);
+                valsIntegerConfig.put(key, intVal);
+                setFieldBasedOnType(key, intVal);
+            } else if (type == double.class || type == Double.class) {
+                double doubleVal = Double.parseDouble(val);
+                valsDoubleConfig.put(key, doubleVal);
+                setFieldBasedOnType(key, doubleVal);
+            } else if (type == boolean.class || type == Boolean.class) {
+                boolean boolVal = Boolean.parseBoolean(val);
+                valsBooleanConfig.put(key, boolVal);
+                setFieldBasedOnType(key, boolVal);
+            }
+        } catch (Exception ignored) {
         }
+    }
 
-        //System.out.println("registering config field: " + name);
+    private void saveToFile(Path file) {
+        try {
+            if (file.getParent() != null) {
+                Files.createDirectories(file.getParent());
+            }
+            try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+                writer.write("# General mod settings\n[general]\n\n");
+                Field[] fields = configClass.getDeclaredFields();
+                for (Field field : fields) {
+                    String name = field.getName();
+                    String comment = "-";
+                    ConfigComment annoComment = field.getAnnotation(ConfigComment.class);
+                    if (annoComment != null && annoComment.value().length > 0) {
+                        comment = annoComment.value()[0];
+                    }
+                    ConfigParams annoParams = field.getAnnotation(ConfigParams.class);
+                    if (annoParams != null) {
+                        comment = annoParams.comment();
+                    }
 
-        Object obj = CoroConfigRegistry.instance().getField(configID, name);
-        if (obj instanceof String) {
-            valsStringConfig.put(name, builder.comment(comment).define(name, (String)obj));
-        } else if (obj instanceof Integer) {
-            valsIntegerConfig.put(name, builder.comment(comment).defineInRange(name, (Integer)obj, (int)min, (int)max));
-        } else if (obj instanceof Double) {
-            valsDoubleConfig.put(name, builder.comment(comment).defineInRange(name, (Double)obj, min, max));
-        } else if (obj instanceof Boolean) {
-            valsBooleanConfig.put(name, builder.comment(comment).define(name, (Boolean)obj));
-        } else {
-            //dbg("unhandled datatype, update initField");
+                    writer.write("# " + comment + "\n");
+                    Object obj = CoroConfigRegistry.instance().getField(configID, name);
+                    if (obj instanceof String s) {
+                        writer.write(name + " = \"" + s + "\"\n\n");
+                        valsStringConfig.put(name, s);
+                    } else if (obj instanceof Integer i) {
+                        writer.write(name + " = " + i + "\n\n");
+                        valsIntegerConfig.put(name, i);
+                    } else if (obj instanceof Double d) {
+                        writer.write(name + " = " + d + "\n\n");
+                        valsDoubleConfig.put(name, d);
+                    } else if (obj instanceof Boolean b) {
+                        writer.write(name + " = " + b + "\n\n");
+                        valsBooleanConfig.put(name, b);
+                    }
+                    setFieldBasedOnType(name, obj);
+                }
+            }
+        } catch (Exception e) {
+            CULog.err("Failed to write config file " + file);
+            e.printStackTrace();
         }
-        setFieldBasedOnType(name, obj);
     }
 }
