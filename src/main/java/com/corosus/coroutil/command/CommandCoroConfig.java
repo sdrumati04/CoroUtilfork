@@ -91,7 +91,9 @@ public class CommandCoroConfig {
 	}
 
 	public static Iterable<String> getConfigs() {
-		return CoroConfigRegistry.instance().lookupFilePathToConfig.keySet().stream().map((e) -> e.replace("\\", "--")).toList();
+		return CoroConfigRegistry.instance().lookupFilePathToConfig.keySet().stream()
+				.map((e) -> e.replace("\\", "--").replace("/", "--"))
+				.toList();
 	}
 
 	public static Iterable<String> getConfigSettings(String config_name) {
@@ -110,6 +112,14 @@ public class CommandCoroConfig {
 	}
 
 	public static String fileToConfig(String str) {
-		return str.replace("--", "\\");
+		String converted = str.replace("--", java.io.File.separator);
+		if (CoroConfigRegistry.instance().lookupFilePathToConfig.containsKey(converted)) {
+			return converted;
+		}
+		String alt = str.replace("--", java.io.File.separator.equals("/") ? "\\" : "/");
+		if (CoroConfigRegistry.instance().lookupFilePathToConfig.containsKey(alt)) {
+			return alt;
+		}
+		return converted;
 	}
 }

@@ -12,6 +12,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 
+/**
+ * Implementazione nativa Fabric del gestore di configurazione di CoroUtil.
+ * 
+ * COME FUNZIONA:
+ * Nelle versioni Forge, CoroUtil utilizzava IConfigSpec/ForgeConfigSpec.
+ * Su Fabric puro, questa classe gestisce direttamente la lettura e scrittura di file TOML
+ * nella cartella 'config/' di Fabric senza librerie esterne pesanti.
+ * 
+ * Legge i campi annotati (@ConfigComment, @ConfigParams) tramite Java Reflection
+ * e scrive un file TOML formattato e commentato comprensibile all'utente.
+ */
 public class ModConfigDataFabric extends ModConfigData {
 
     public HashMap<String, String> valsStringConfig = new HashMap<>();
